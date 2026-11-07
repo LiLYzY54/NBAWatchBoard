@@ -43,8 +43,10 @@ run_static_checks() {
         -o "${test_dir}/test_nba_box"
     "${test_dir}/test_nba_box"
     PYTHONDONTWRITEBYTECODE=1 python3 tools/check_font_coverage.py
-    # 电脑侧抓取脚本不参与固件,但语法错误不该等到用的时候才发现。
-    PYTHONDONTWRITEBYTECODE=1 python3 -c 'import ast, pathlib; ast.parse(pathlib.Path("tools/hupu_scrape.py").read_text(encoding="utf-8"))'
+    # 电脑侧抓取脚本是本地可选工具,不随仓库分发:存在时才顺手查语法。
+    if [ -f tools/hupu_scrape.py ]; then
+        PYTHONDONTWRITEBYTECODE=1 python3 -c 'import ast, pathlib; ast.parse(pathlib.Path("tools/hupu_scrape.py").read_text(encoding="utf-8"))'
+    fi
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
         tests/test_key_guard.c -o "${test_dir}/test_key_guard"
     "${test_dir}/test_key_guard"
