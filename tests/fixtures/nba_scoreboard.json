@@ -1,0 +1,318 @@
+{
+ "leagues": [
+  {
+   "name": "NBA"
+  }
+ ],
+ "events": [
+  {
+   "id": "401909277",
+   "date": "2026-10-30T23:00Z",
+   "name": "Charlotte Hornets at Washington Wizards",
+   "shortName": "CHA @ WSH",
+   "competitions": [
+    {
+     "id": "401909277",
+     "competitors": [
+      {
+       "id": "27",
+       "homeAway": "home",
+       "score": "95",
+       "team": {
+        "abbreviation": "WSH",
+        "displayName": "Washington Wizards",
+        "logo": "http://example.invalid/logo.png"
+       },
+       "records": [
+        {
+         "name": "overall",
+         "summary": "3-3"
+        }
+       ],
+       "linescores": [
+        {
+         "period": 1,
+         "value": 22.0
+        },
+        {
+         "period": 2,
+         "value": 29.0
+        },
+        {
+         "period": 3,
+         "value": 28.0
+        },
+        {
+         "period": 4,
+         "value": 16.0
+        }
+       ]
+      },
+      {
+       "id": "30",
+       "homeAway": "away",
+       "score": "79",
+       "team": {
+        "abbreviation": "CHA",
+        "displayName": "Charlotte Hornets",
+        "logo": "http://example.invalid/logo.png"
+       },
+       "records": [
+        {
+         "name": "overall",
+         "summary": "3-3"
+        }
+       ],
+       "linescores": [
+        {
+         "period": 1,
+         "value": 26.0
+        },
+        {
+         "period": 2,
+         "value": 20.0
+        },
+        {
+         "period": 3,
+         "value": 13.0
+        },
+        {
+         "period": 4,
+         "value": 20.0
+        }
+       ]
+      }
+     ],
+     "status": {
+      "displayClock": "12:00",
+      "period": 4,
+      "type": {
+       "state": "post",
+       "shortDetail": "Final",
+       "completed": true
+      }
+     }
+    }
+   ],
+   "status": {
+    "type": {
+     "state": "post"
+    }
+   },
+   "links": [
+    {
+     "href": "http://example.invalid/game",
+     "team": {
+      "abbreviation": "XXX"
+     }
+    }
+   ]
+  },
+  {
+   "id": "401909278",
+   "date": "2026-10-30T23:30Z",
+   "name": "Chicago Bulls at Boston Celtics",
+   "shortName": "CHI @ BOS",
+   "competitions": [
+    {
+     "id": "401909278",
+     "competitors": [
+      {
+       "id": "2",
+       "homeAway": "home",
+       "score": "125",
+       "team": {
+        "abbreviation": "BOS",
+        "displayName": "Boston Celtics",
+        "logo": "http://example.invalid/logo.png"
+       },
+       "records": [
+        {
+         "name": "overall",
+         "summary": "4-1"
+        }
+       ],
+       "linescores": [
+        {
+         "period": 1,
+         "value": 44.0
+        },
+        {
+         "period": 2,
+         "value": 34.0
+        },
+        {
+         "period": 3,
+         "value": 21.0
+        },
+        {
+         "period": 4,
+         "value": 26.0
+        }
+       ]
+      },
+      {
+       "id": "4",
+       "homeAway": "away",
+       "score": "111",
+       "team": {
+        "abbreviation": "CHI",
+        "displayName": "Chicago Bulls",
+        "logo": "http://example.invalid/logo.png"
+       },
+       "records": [
+        {
+         "name": "overall",
+         "summary": "1-5"
+        }
+       ],
+       "linescores": [
+        {
+         "period": 1,
+         "value": 25.0
+        },
+        {
+         "period": 2,
+         "value": 24.0
+        },
+        {
+         "period": 3,
+         "value": 25.0
+        },
+        {
+         "period": 4,
+         "value": 37.0
+        }
+       ]
+      }
+     ],
+     "status": {
+      "displayClock": "0.0",
+      "period": 4,
+      "type": {
+       "state": "post",
+       "shortDetail": "Final",
+       "completed": true
+      }
+     }
+    }
+   ],
+   "status": {
+    "type": {
+     "state": "post"
+    }
+   },
+   "links": [
+    {
+     "href": "http://example.invalid/game",
+     "team": {
+      "abbreviation": "XXX"
+     }
+    }
+   ]
+  },
+  {
+   "id": "401909279",
+   "date": "2026-10-30T23:30Z",
+   "name": "Detroit Pistons at Brooklyn Nets",
+   "shortName": "DET @ BKN",
+   "competitions": [
+    {
+     "id": "401909279",
+     "competitors": [
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "94",
+       "team": {
+        "abbreviation": "BKN",
+        "displayName": "Brooklyn Nets",
+        "logo": "http://example.invalid/logo.png"
+       },
+       "records": [
+        {
+         "name": "overall",
+         "summary": "0-5"
+        }
+       ],
+       "linescores": [
+        {
+         "period": 1,
+         "value": 28.0
+        },
+        {
+         "period": 2,
+         "value": 21.0
+        },
+        {
+         "period": 3,
+         "value": 17.0
+        },
+        {
+         "period": 4,
+         "value": 28.0
+        }
+       ]
+      },
+      {
+       "id": "8",
+       "homeAway": "away",
+       "score": "110",
+       "team": {
+        "abbreviation": "DET",
+        "displayName": "Detroit Pistons",
+        "logo": "http://example.invalid/logo.png"
+       },
+       "records": [
+        {
+         "name": "overall",
+         "summary": "5-1"
+        }
+       ],
+       "linescores": [
+        {
+         "period": 1,
+         "value": 21.0
+        },
+        {
+         "period": 2,
+         "value": 35.0
+        },
+        {
+         "period": 3,
+         "value": 36.0
+        },
+        {
+         "period": 4,
+         "value": 18.0
+        }
+       ]
+      }
+     ],
+     "status": {
+      "displayClock": "0.0",
+      "period": 4,
+      "type": {
+       "state": "post",
+       "shortDetail": "Final",
+       "completed": true
+      }
+     }
+    }
+   ],
+   "status": {
+    "type": {
+     "state": "post"
+    }
+   },
+   "links": [
+    {
+     "href": "http://example.invalid/game",
+     "team": {
+      "abbreviation": "XXX"
+     }
+    }
+   ]
+  }
+ ]
+}
