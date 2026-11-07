@@ -1,4 +1,7 @@
-[English](README.md) | **简体中文**
+**语言：** [English](README.md) | **简体中文** —— 两份内容同步维护。
+
+> **中英双版 README**：本页为中文版，[English](README.md) 内容一致；
+> 六屏图库、首次配网、按键表、构建与烧写说明都齐全。
 
 <p align="center">
   <img src="docs/screens/screens-grid.png" alt="NBA 比赛看板六张界面预览" width="780">

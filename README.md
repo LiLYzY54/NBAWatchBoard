@@ -1,4 +1,7 @@
-[Chinese](README.zh_CN.md) | **English**
+**Language:** [简体中文](README.zh_CN.md) | **English** — both editions are kept in sync.
+
+> **Two README editions:** [简体中文](README.zh_CN.md) and English, with the same
+> screen tour, setup steps, control table and build instructions.
 
 <p align="center">
   <img src="docs/screens/screens-grid.png" alt="Six NBA WatchBoard screen previews" width="780">
