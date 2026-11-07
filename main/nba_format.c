@@ -1,4 +1,12 @@
 // main/nba_format.c —— 看板文本格式化(纯逻辑,主机可测)。
+//
+// 主机单测在 Linux/glibc 下按 -std=c11 编译:localtime_r/gmtime_r 只有打开
+// POSIX 特性宏才会声明(macOS 默认就能看见,本地不报、CI 报隐式声明)。
+// 必须在任何系统头文件之前定义,所以放在所有 include 前面。
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "nba_model.h"
 
 #include <stdio.h>
