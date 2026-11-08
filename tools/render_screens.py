@@ -142,7 +142,9 @@ def overview() -> Screen:
     games = [
         ("CHA", "79", "WSH", "95", "已结束", "", "post"),
         ("CHI", "111", "BOS", "125", "已结束", "", "post"),
-        ("DET", "110", "BKN", "94", "已结束", "", "post"),
+        # 2026-11-08 真实赛果:魔术 @ 勇士打加时。"加时"曾因副句用西文字体
+        # 在真机上显示成两个方框,这里保留该场景作为回归示例。
+        ("ORL", "119", "GS", "126", "已结束", "加时", "post"),
         ("OKC", "108", "LAL", "102", "第 3 节", "05:42", "live"),
     ]
     for i, (away, ascore, home, hscore, status, sub, state) in enumerate(games):
@@ -160,7 +162,8 @@ def overview() -> Screen:
         scr.text(84, y + 24, hscore, 28, TEXT, w=60, align="right", bold=True)
         scr.text(150, y + 6, status, 16, LIVE if state == "live" else MUTED,
                  w=74, align="right", cjk=True)
-        scr.text(150, y + 28, sub, 14, MUTED, w=74, align="right")
+        # 副句整列用 app_font_cjk_16(含 ASCII),所以中文"加时"和数字都是 16px。
+        scr.text(150, y + 28, sub, 16, MUTED, w=74, align="right")
     scr.text(4, 296, "长按确定刷新·长按上下换日", 16, MUTED, w=232,
              align="center", cjk=True)
     return scr

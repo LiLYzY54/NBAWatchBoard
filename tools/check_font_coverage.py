@@ -10,7 +10,10 @@ box. This check turns that into a build-time failure:
   (``main/nba_ui.c`` for labels, ``main/nba_format.c`` for formatted values,
   ``main/nba_app.c`` for the header status line);
 * it reads the glyph coverage of that generated font source;
-* it reports every character that has no glyph.
+* it reports every character that has no glyph;
+* it checks that Chinese text is not written into a Montserrat-only label
+  (a glyph can exist in the font yet still be drawn as a box if the label
+  uses the wrong font — see ``ui_font_routing_errors``).
 
 Run from the repository root: ``python3 tools/check_font_coverage.py``.
 If the font source is missing the check fails instead of pretending success.
@@ -116,6 +119,63 @@ def cmap_coverage(font_source: str) -> set[int]:
     return covered
 
 
+# A label is a "Latin-only label" when make_label() gave it a Montserrat font.
+# app_font_cjk_16 also covers 0x20-0x7E, so labels using it can show both.
+_LABEL_ASSIGN = re.compile(
+    r"([A-Za-z_][A-Za-z0-9_.\[\]>-]*)\s*=\s*make_label\s*\((.*?)\);", re.S
+)
+_CJK_ASSIGN = re.compile(r"\b([A-Za-z_]\w*)\s*=\s*\"([^\"]*)\"")
+_SET_TEXT = re.compile(
+    r"lv_label_set_text\s*\(\s*([A-Za-z_][A-Za-z0-9_.\[\]>-]*)\s*,\s*(.*?)\)\s*;", re.S
+)
+
+
+def _has_cjk(text: str) -> bool:
+    return any(ord(char) > 0x7F for char in text)
+
+
+def ui_font_routing_errors(ui_source: str) -> list[str]:
+    """Find Chinese text handed to a label whose font has no Chinese glyphs.
+
+    Glyph coverage is not enough: ``"加时"`` is present in app_font_cjk_16, but
+    a label created with ``&lv_font_montserrat_14`` renders each character as a
+    placeholder box.  On 2026-11-08, Orlando @ Golden State finished in
+    overtime, so the overview row showed "已结束" with exactly two boxes below.
+
+    This is a lightweight source-level data-flow check: track label variables
+    created with Montserrat, track variables assigned Chinese string literals,
+    then reject either kind of Chinese value being passed to lv_label_set_text
+    on those labels.  It is deliberately scoped to nba_ui.c's direct calls;
+    values coming from outside the file (network text, formatted buffers) are
+    the caller's responsibility and are covered by the label's font choice.
+    """
+    errors: list[str] = []
+    ascii_labels: set[str] = set()
+    cjk_vars: set[str] = set()
+
+    for match in _LABEL_ASSIGN.finditer(ui_source):
+        name, body = match.group(1), match.group(2)
+        if "lv_font_montserrat" in body:
+            ascii_labels.add(name)
+            for literal in strip_comments_and_literals(body):
+                if _has_cjk(literal):
+                    errors.append(f"{name}: Chinese literal {literal!r} uses a Montserrat font")
+
+    for match in _CJK_ASSIGN.finditer(ui_source):
+        if _has_cjk(match.group(2)):
+            cjk_vars.add(match.group(1))
+
+    for match in _SET_TEXT.finditer(ui_source):
+        label, value = match.group(1).strip(), match.group(2).strip()
+        if label not in ascii_labels:
+            continue
+        if value in cjk_vars:
+            errors.append(f"{label}: Chinese text via {value!r} uses a Montserrat font")
+        elif value.startswith('"') and _has_cjk(value):
+            errors.append(f"{label}: Chinese literal {value!r} uses a Montserrat font")
+    return errors
+
+
 def main() -> int:
     font_path = FONT_PATH
     if not font_path.is_file():
@@ -147,8 +207,17 @@ def main() -> int:
             print(f"  U+{cp:04X} {chr(cp)!r} (first seen in {required[cp]})")
         return 1
 
+    ui_path = Path("main/nba_ui.c")
+    routing = ui_font_routing_errors(ui_path.read_text(encoding="utf-8")) \
+        if ui_path.is_file() else []
+    if routing:
+        print("FAIL font routing: Chinese text on a Montserrat-only label")
+        for error in routing:
+            print(f"  {error}")
+        return 1
+
     print(f"Font coverage: PASS ({len(required)} non-ASCII code points, "
-          f"{len(covered)} covered by {FONT_NAME})")
+          f"{len(covered)} covered by {FONT_NAME}; UI font routing: PASS)")
     return 0
 
 

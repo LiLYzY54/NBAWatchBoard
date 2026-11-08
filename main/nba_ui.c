@@ -228,10 +228,16 @@ static void overview_build(void)
         row->home_score = make_label(row->card, "", &lv_font_montserrat_28, COLOR_TEXT);
         place(row->home_score, 76, 24, 60, LV_TEXT_ALIGN_RIGHT);
 
+        // 右列整列都用中文字体:主句是"已结束/第3节/未开始",副句平时是纯数字
+        // (剩余时间/开赛时间),但加时赛的副句是"加时"两个汉字。之前副句用
+        // montserrat_14,汉字没有字形,LVGL 会各画一个方框 —— 真机 2026-11-08
+        // 魔术 @ 勇士 Final/OT(period=5)的"已结束"底下就是这两个空框。
+        // app_font_cjk_16 含 0x20-0x7E 全 ASCII,数字/冒号照样能显示,所以固定
+        // 用中文字体即可,不必按内容在两种字体间来回切。
         row->status = make_label(row->card, "", FONT_CJK,
-                                 COLOR_MUTED);
+                                  COLOR_MUTED);
         place(row->status, 142, 6, 74, LV_TEXT_ALIGN_RIGHT);
-        row->status_sub = make_label(row->card, "", &lv_font_montserrat_14, COLOR_MUTED);
+        row->status_sub = make_label(row->card, "", FONT_CJK, COLOR_MUTED);
         place(row->status_sub, 142, 28, 74, LV_TEXT_ALIGN_RIGHT);
     }
 

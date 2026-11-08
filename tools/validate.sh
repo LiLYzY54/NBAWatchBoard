@@ -43,6 +43,7 @@ run_static_checks() {
         -o "${test_dir}/test_nba_box"
     "${test_dir}/test_nba_box"
     PYTHONDONTWRITEBYTECODE=1 python3 tools/check_font_coverage.py
+    PYTHONDONTWRITEBYTECODE=1 python3 tests/test_font_routing.py
     # 电脑侧抓取脚本是本地可选工具,不随仓库分发:存在时才顺手查语法。
     if [ -f tools/hupu_scrape.py ]; then
         PYTHONDONTWRITEBYTECODE=1 python3 -c 'import ast, pathlib; ast.parse(pathlib.Path("tools/hupu_scrape.py").read_text(encoding="utf-8"))'
