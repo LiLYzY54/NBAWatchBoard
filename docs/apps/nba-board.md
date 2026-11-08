@@ -16,10 +16,10 @@ but are no longer compiled into the firmware.
 
 | Screen | Content | Keys |
 | --- | --- | --- |
-| Overview | Up to 16 games, 4 visible; team abbreviation, score, status (quarter + clock / final / tip-off time) | Up/Down: move selection (wraps); OK: open detail; long Up/Down: previous/next game day; long OK: refresh now |
+| Overview | Up to 16 games, 4 visible; team abbreviation, score, status (quarter + clock / final / tip-off time) | Up/Down: move selection (wraps); OK: open detail; long Up/Down: previous/next game day; long OK: refresh now (reopens provisioning when no usable network) |
 | Detail | Both teams' abbreviations, large scores, records, quarter table (Q1–Q4, total), state, game day | Up/Down: switch game; OK: open players; long OK: back to overview |
 | Players | Both totals on top; one team at a time, with a header row (away/home, abbreviation, team total) and that team's players; 8 rows visible. The name column is fixed, the three stat columns slide to the next group on each OK press | Up/Down: move cursor (wraps); OK: slide to the next stat group (nothing rotates on its own); long Up: home team; long Down: away team; long OK: back to detail |
-| Provisioning | Hotspot name, the address to open on the phone, current state. Only shown when no usable Wi-Fi is configured | long OK: leave (long OK again reopens the hotspot while there are no credentials); all other keys ignored |
+| Provisioning | Hotspot name, the address to open on the phone, current state. Shown when there are no credentials, no network can be reached, or the gateway blocks the internet behind a login page | long OK: leave (long OK again reopens the hotspot while no usable network exists); all other keys ignored |
 
 ### The hint line at the bottom
 
@@ -31,16 +31,19 @@ every list uses; what nobody guesses are the long presses.
 
 | Screen | Hint (on-screen Chinese, translated) |
 | --- | --- |
-| Overview (provisioned) | `长按确定刷新·长按上下换日` — long OK refresh, long Up/Down change day |
-| Overview (no credentials) | `长按确定配网` — long OK configure network |
+| Overview (provisioned, internet OK) | `长按确定刷新·长按上下换日` — long OK refresh, long Up/Down change day |
+| Overview (no credentials / no internet) | `长按确定配网` — long OK configure network |
 | Detail | `上下换场·确定球员·长按返回` — Up/Down switch game, OK players, long OK back |
 | Players (two lines) | `上下选人·确定换组` / `长按上下换队·长按确定返回` — Up/Down pick, OK next stat group; long Up/Down switch team, long OK back |
 | Provisioning | `长按确定返回` — long OK back |
 
 Two of them change with state, on purpose:
 
-- Long OK on the overview refreshes when credentials exist, but reopens the hotspot
-  when they do not. One key, two unrelated actions - a static hint would be a lie.
+- Long OK on the overview refreshes only when credentials exist and the internet
+  actually works; it reopens the hotspot when there are no credentials *or* when
+  Wi-Fi is associated but a captive portal blocks the internet. One key, two
+  unrelated actions - a static hint would be a lie. The captive-portal case needs
+  the hint most: Wi-Fi looks fine, so the device otherwise seems broken.
 - Players is the only screen needing two lines: three actions (stat group, team,
   back), two of them long presses. The cost is the 8 roster rows shrinking from
   24 px to 22 px (20 px row card).
@@ -76,9 +79,12 @@ Global behaviour:
   Changing day, long OK, or waking the screen all interrupt the wait immediately.
 - A Wi-Fi network that requires a web login (campus/hotel captive portal) does not
   work: Wi-Fi associates, but the gateway answers every HTTP request with a 302 to
-  its login page, so no score data arrives and the header shows `网络未连`. The board
+  its login page, so no score data arrives and the header shows `无法上网`. The board
   has no browser and cannot complete portal authentication. Whitelist its MAC on
   the portal, or use a network without a captive portal (e.g. a phone hotspot).
+  Switching networks needs no computer: the hint becomes `长按确定配网` and a long
+  press opens the hotspot; left alone, three minutes without internet opens it once
+  automatically.
 - The player page is fetched on demand: only when OK is pressed on that game's
   detail page, and the result is cached per game. Scores change during a game, a
   box score does not, so it is not re-fetched on the score refresh cycle.
@@ -288,14 +294,21 @@ name and password in a browser:
    hotspot and returns to the scoreboard
 ```
 
-Three entry points open that hotspot, covering everything from "first power-on"
-to "moved to another network":
+Four entry points open that hotspot, covering everything from "first power-on" to
+"associated but the internet is blocked":
 
 | Entry point | Condition |
 | --- | --- |
 | First boot | No credentials in NVS; the provisioning page is the first screen |
 | New Wi-Fi environment | Credentials exist but every saved network has been tried and failed for 90 s (old network gone / password changed) |
-| Manual reopen | Long-press OK on the scoreboard (only when there are no credentials), or serial `wifi -p` |
+| Captive portal | Wi-Fi is associated but no ESPN data arrives for 3 minutes; opens once per boot |
+| Manual reopen | Long-press OK on the overview when no credentials exist or the internet is blocked, or serial `wifi -p` |
+
+The fourth entry is the escape hatch for captive portals. Those networks hand out
+a DHCP lease and the Wi-Fi manager stays `CONNECTED` forever, so it never enters
+`FAILED` and `all_failed()` never becomes true. A watchdog that only watches for
+connect failures can never fire - an earlier build got stuck showing "no internet"
+with no way to switch networks without a USB cable.
 
 Deliberate choices:
 
@@ -450,7 +463,8 @@ skips the remaining layout instead of handing NULL back to LVGL.
   per player, so they stay desktop-side and reach the device only via `--serve`. Top
   comments are desktop-only for the same reason.
 - No game play-by-play, team stats, or standings.
-- Provisioning needs a USB connection; no phone-based setup yet.
+- A Wi-Fi network requiring web authentication cannot be logged into from the
+  device; whitelist its MAC or switch to a network without a captive portal.
 - Scores come from a third-party public endpoint without SLA; a schema change
   would surface as the "refresh failed" status and keep the last good board on
   screen.

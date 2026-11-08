@@ -81,19 +81,21 @@ community listing is an AI-generated concept artwork, not a photo of the UI.
 
 Only 2.4 GHz networks work (ESP32-C3). A network that requires a web login
 (campus or hotel captive portal) cannot be used: the board has no browser, so
-it cannot complete that login. Whitelist the device on the portal or use a
-phone hotspot instead. To change networks later, use the serial `wifi`
-commands below; after a saved network stays unreachable for about 90 seconds,
-the board reopens the hotspot automatically.
+it cannot complete that login. The header then says `无法上网`. Whitelist the
+device on the portal or use a phone hotspot instead. To switch networks, just
+long-press OK on the overview - the hint changes to `长按确定配网` and the
+hotspot opens. Left unattended, the board also opens it once after 90 seconds
+of failed connections or three minutes of blocked internet. Serial `wifi`
+commands below are only a development fallback.
 
 ## Controls
 
 | Screen | Short press | Long press |
 | --- | --- | --- |
-| Overview | Up / Down move the selection, OK opens game detail | OK refreshes now, Up / Down step one day back / forward |
+| Overview | Up / Down move the selection, OK opens game detail | OK refreshes now (reopens Wi-Fi setup when no usable network), Up / Down step one day back / forward |
 | Game detail | Up / Down switch to the previous / next game, OK opens players | OK returns to overview |
 | Players | Up / Down move the cursor, OK slides in the next stat group | Up / Down switch team, OK returns to detail |
-| Wi-Fi setup | (no input; the password is typed on the phone) | OK exits, or reopens the hotspot when there are no credentials |
+| Wi-Fi setup | (no input; the password is typed on the phone) | OK exits, or reopens the hotspot when no usable network exists |
 
 Each screen prints only the non-obvious gestures at the bottom, for example
 `长按确定刷新·长按上下换日` on the overview and `上下选人·确定换组` on the

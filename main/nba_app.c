@@ -126,22 +126,31 @@ static nba_date_t s_alt_day;
 
 // ---- 配网状态 -----------------------------------------------------------
 //
-// 三个进配网的入口,覆盖"这辈子只配一次"到"换个地方就得重配":
-//   1. 开机没凭据            —— 首次上电;
+// 四个进配网的入口,覆盖"这辈子只配一次"到"连上了却上不了网":
+//   1. 开机没凭据             —— 首次上电;
 //   2. 有凭据但连不上超过 90 秒 —— 换了 Wi-Fi 环境(最常见);
-//   3. 看板页长按确定且无凭据   —— 用户中途退出了配网页,想再进去。
+//   3. 看板页长按确定且没网可用 —— 用户中途退出了配网页,想再进去;
+//   4. 连着 Wi-Fi 但外网被 Portal 认证页劫持超过 3 分钟 —— 校园网/酒店网。
+//
+// 第 4 条最容易漏:这类网络 DHCP 正常、状态一直是 CONNECTED,既不会进 FAILED
+// 也不会 all_failed(),原先两个看门狗都抓不到,设备会永远停在"网络未连"却开不
+// 了热点,用户除了接串口没有任何办法换网。
 static volatile bool s_prov_active;
 static volatile bool s_prov_wanted;      // 启动时判定"该进配网",交给 ui_task 执行
 static int64_t s_prov_start_us;
 static int64_t s_prov_close_at_us;       // 0 = 还没出结果;否则到点关热点
 static int64_t s_offline_since_us;       // 有凭据却处于 FAILED 的起点
+static int64_t s_portal_since_us;        // 连着 Wi-Fi 却拿不到外网的起点
+static bool s_portal_prov_done;          // 本次上电已因 Portal 自动开过一次热点
 
 #define PROV_IDLE_TIMEOUT_US  (10LL * 60 * 1000 * 1000)  // 热点最多开 10 分钟
 #define PROV_CLOSE_DELAY_US   (1500LL * 1000)            // 结果页留给手机收完
 #define OFFLINE_PROV_AFTER_US (90LL * 1000 * 1000)       // 连不上多久后自动开热点
+#define PORTAL_PROV_AFTER_US  (3LL * 60 * 1000 * 1000)   // 外网被劫持多久后开热点
 
 static void enter_prov(void);
 static void trigger_refresh(void);
+static bool need_prov_entry(void);
 
 // 比赛日翻页状态:基准日(北京时间的"今天")+ 偏移。s_base_known 之前不允许翻页。
 static nba_date_t s_base_day;
@@ -165,10 +174,11 @@ static void refresh_net_text(void)
         break;
     case WIFI_MGR_CONNECTED:
     default:
-        // 校园网/酒店网:Wi-Fi 明明连着,HTTP 却被网关 302 到认证页。这时
-        // "刷新失败"太含糊,直接说外网没通,用户才知道要去网页登录。
+        // 校园网/酒店网:Wi-Fi 明明连着,HTTP 却被网关 302 到认证页。说
+        // "网络未连"会被误解成没连上 Wi-Fi(其实连得挺好),所以写"无法上网"、
+        // 提示行给出换网入口,用户才知道该去认证或重配一个免认证网络。
         if (s_need_portal) {
-            snprintf(s_net_text, sizeof(s_net_text), "网络未连");
+            snprintf(s_net_text, sizeof(s_net_text), "无法上网");
         } else if (s_last_update[0] == '\0') {
             snprintf(s_net_text, sizeof(s_net_text), "刷新中");
         } else {
@@ -213,8 +223,9 @@ static void refresh_day_text(void)
 
 static void render_locked(void)
 {
-    // 没有凭据时,总览页长按确定的行为是"重新开配网"而不是刷新,提示文案跟着变。
-    s_ui.need_setup = !wifi_mgr_has_credentials();
+    // 没有凭据、或连着 Wi-Fi 却上不了外网(Portal)时,总览页长按确定的行为都是
+    // "重新开配网"而不是刷新,提示文案必须跟着变,否则"长按确定刷新"是句假话。
+    s_ui.need_setup = need_prov_entry();
     // 换日之后比赛数可能变少,选中行要夹回范围内,否则高亮会消失。
     if (s_board.count == 0) {
         s_ui.selected = 0;
@@ -573,10 +584,19 @@ static void leave_prov(bool ok)
     s_ui.view = NBA_VIEW_OVERVIEW;
     s_prov_close_at_us = 0;
     s_offline_since_us = 0;
+    s_portal_since_us = 0;
     if (ok) {
+        // 新网络已写入:清掉 Portal 标志,让顶栏/提示行立刻回到正常状态,也允许
+        // 以后再撞 Portal 时重新自动开热点。外网到底通不通由下一次抓取判定。
+        s_need_portal = false;
+        s_portal_prov_done = false;
         // 关热点时 Wi-Fi 重新进入了 STA 模式,STA 侧连接已被打断,必须重连一次。
         wifi_mgr_start();
         trigger_refresh();
+    } else if (s_need_portal) {
+        // 用户主动退出(或热点超时)且外网仍然不通:本次上电不再自动弹热点,
+        // 免得每 3 分钟把配网页怼到脸上。长按确定的手动入口一直可用。
+        s_portal_prov_done = true;
     }
     ESP_LOGI(TAG, "退出配网(%s)", ok ? "已保存并连通" : "未完成");
 }
@@ -593,14 +613,16 @@ static void on_prov_done(bool ok)
 
 static void trigger_refresh(void)
 {
-    // 没有凭据时"刷新"本身没有意义:把确定键当成重新打开配网页的入口。
-    // 用户中途退出配网(或热点超时关了)之后,不用插电脑也能再进去。
-    if (!wifi_mgr_has_credentials() && !s_prov_active) {
-        enter_prov();
-        return;
-    }
     s_last_update[0] = '\0';   // 立刻显示"刷新中"
     if (s_net_task) (void)xTaskNotifyGive(s_net_task);
+}
+
+// "没网可用" = 一条凭据都没有,或连着 Wi-Fi 却被 Portal 挡在外网之外。后者
+// 的 Wi-Fi 状态是 CONNECTED,不会触发失败重试,不给手动出口就只能接串口换网。
+// 只给总览页的长按确定用:换日也走 trigger_refresh(),不该被顺带拽进配网页。
+static bool need_prov_entry(void)
+{
+    return !wifi_mgr_has_credentials() || s_need_portal;
 }
 
 // 换比赛日。锚点未知(还没抓到过任何数据)时不动,避免请求一个凭空猜的日期。
@@ -629,7 +651,7 @@ static void handle_key(bsp_btn_t btn, bsp_btn_ev_t ev)
     }
 
     // 配网页上屏幕不收输入:密码在手机上敲。只有"长按确定"能退出,退出后回到
-    // 空白看板,再长按确定可以重新开热点(见 trigger_refresh)。
+    // 空白看板,再长按确定可以重新开热点(见 need_prov_entry)。
     if (s_ui.view == NBA_VIEW_PROVISION) {
         if (ev == BSP_BTN_LONG && btn == BSP_BTN_OK) {
             leave_prov(false);
@@ -661,6 +683,9 @@ static void handle_key(bsp_btn_t btn, bsp_btn_ev_t ev)
             s_ui.view = NBA_VIEW_DETAIL;
         } else if (s_ui.view == NBA_VIEW_DETAIL) {
             s_ui.view = NBA_VIEW_OVERVIEW;
+        } else if (need_prov_entry() && !s_prov_active) {
+            // 总览页长按确定:没网可用时是配网入口,不是刷新(刷新也刷不出东西)。
+            enter_prov();
         } else {
             trigger_refresh();
         }
@@ -731,6 +756,25 @@ static void ui_task(void *arg)
             ESP_LOGW(TAG, "已保存的 Wi-Fi 持续连不上,自动进入配网");
             enter_prov();
             request_render();
+        }
+
+        // Portal 看门狗:Wi-Fi 连着、DHCP 也正常,但每次 HTTP 都被网关 302 到
+        // 认证页。这种状态永远不会变成 FAILED,上面的离线看门狗抓不到,必须
+        // 单独按"外网不通"计时。3 分钟已经足够区分临时重定向和真 Portal。
+        // 计时变量只在 ui_task 里写,不碰跨任务的 64 位时间戳。
+        if (!s_prov_active && !s_portal_prov_done &&
+            s_need_portal && wifi_mgr_connected()) {
+            if (s_portal_since_us == 0) {
+                s_portal_since_us = now;
+            } else if (now - s_portal_since_us > PORTAL_PROV_AFTER_US) {
+                s_portal_since_us = 0;
+                s_portal_prov_done = true;   // 本次上电只自动开一次,不反复弹
+                ESP_LOGW(TAG, "外网被认证页拦截超过 3 分钟,自动进入配网");
+                enter_prov();
+                request_render();
+            }
+        } else if (!s_need_portal) {
+            s_portal_since_us = 0;          // 外网恢复了,计时归零
         }
 
         if (now - last_battery_us > BATTERY_PERIOD_MS * 1000LL) {
