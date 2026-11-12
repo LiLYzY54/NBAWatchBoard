@@ -66,8 +66,9 @@ corner screen and three buttons on one ADC pin.
   <img src="docs/brand/ai-passport-views.jpg" alt="Front, side and back views of the device" width="560">
 </p>
 
-The [cover illustration](docs/screens/cover-illustration.jpg) used for the
-community listing is an AI-generated concept artwork, not a photo of the UI.
+The [cover](docs/community/cover.png) and [gallery](docs/community/gallery-4.png)
+used for the community listing are illustrations redrawn from the real interface,
+not device photos. The last gallery image carries a QR code for this repository.
 
 ## First-time setup
 

@@ -50,7 +50,7 @@
   <img src="docs/brand/ai-passport-views.jpg" alt="设备正面、侧面与背面结构图" width="560">
 </p>
 
-社区玩法用的 [封面插画](docs/screens/cover-illustration.jpg) 是 AI 生成的概念示意，不是界面实拍。
+社区玩法用的 [封面](docs/community/cover.png) 与 [配图](docs/community/gallery-4.png) 是按真实界面重绘的 Passport 运行画面示意图，不是实机照片；图集最后一张附了本仓库的二维码。
 
 ## 首次上手
 
